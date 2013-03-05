@@ -2,11 +2,13 @@
 require 'socket'
 require 'cgi'
 require 'logger'
+require 'open-uri'
 require 'rubygems'
 require 'json'
 require 'curb-fu'
 
 load 'post.class.rb'
+load 'imagepost.class.rb'
 load 'postqueue.class.rb'
 load 'poster.rb'
 
@@ -37,19 +39,29 @@ while (session = webserver.accept)
 		posts = JSON.parse(payload)
 		
 		posts.each do |postraw|
-			post = Post.new(postraw["token"], postraw["to"], postraw["message"])
+			type = "post"
+			type = postraw["type"] if postraw.has_key?("type")
+
+			post = nil
+
+			if(type == "post")
+				post = Post.new(postraw["token"], postraw["to"], postraw["message"])
 			
-			post.link = postraw["link"] if postraw.has_key?("link")
-			post.picture = postraw["picture"] if postraw.has_key?("picture")
-			post.name = postraw["name"] if postraw.has_key?("name")
-			post.caption = postraw["caption"] if postraw.has_key?("caption")
-			post.description = postraw["description"] if postraw.has_key?("description")
-			post.actions = postraw["actions"] if postraw.has_key?("actions")
-			post.place = postraw["place"] if postraw.has_key?("place")
-			post.tags = postraw["tags"] if postraw.has_key?("tags")
-			post.privacy = postraw["privacy"] if postraw.has_key?("privacy")
-			post.object_attachment = postraw["object_attachment"] if postraw.has_key?("object_attachment")
-			
+				post.link = postraw["link"] if postraw.has_key?("link")
+				post.picture = postraw["picture"] if postraw.has_key?("picture")
+				post.name = postraw["name"] if postraw.has_key?("name")
+				post.caption = postraw["caption"] if postraw.has_key?("caption")
+				post.description = postraw["description"] if postraw.has_key?("description")
+				post.actions = postraw["actions"] if postraw.has_key?("actions")
+				post.place = postraw["place"] if postraw.has_key?("place")
+				post.tags = postraw["tags"] if postraw.has_key?("tags")
+				post.privacy = postraw["privacy"] if postraw.has_key?("privacy")
+				post.object_attachment = postraw["object_attachment"] if postraw.has_key?("object_attachment")
+			elsif(type == "imagepost")
+				post = ImagePost.new(postraw["token"], postraw["to"], postraw["url"], postraw["message"])
+			else
+				raise "Type not supported"
+			end
 			postqueue.addPost(post)
 		end
 		
